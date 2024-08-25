@@ -32,6 +32,15 @@ export default function Home() {
   const [username, setUsername] = useState("");
   const [inputMessage, setInputMessage] = useState("");
 
+  const [isSending, setIsSending] = useState(false);
+
+  useEffect(() => {
+    const _username = localStorage.getItem("username");
+    if (_username) {
+      setUsername(_username);
+    }
+  }, []);
+
   useEffect(() => {
     (async () => {
       // Choose a content topic
@@ -134,35 +143,43 @@ export default function Home() {
     })();
   }, [isStoreFetched, isSubscribed, node]);
 
-  const sendMessage = useCallback(async () => {
-    if (!node) return;
-    if (!(username && inputMessage)) return;
-    console.log("sending message...");
-    // Create a message structure using Protobuf
-    const ChatMessage = new protobuf.Type("ChatMessage")
-      .add(new protobuf.Field("timestamp", 1, "uint64"))
-      .add(new protobuf.Field("sender", 2, "string"))
-      .add(new protobuf.Field("message", 3, "string"));
+  const sendMessage = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!node) return;
+      if (!(username && inputMessage)) return;
 
-    // Create a new message object
-    const protoMessage = ChatMessage.create({
-      timestamp: Date.now(),
-      sender: username,
-      message: inputMessage,
-    });
+      console.log("sending message...");
+      setIsSending(true);
 
-    // Serialise the message using Protobuf
-    const serialisedMessage = ChatMessage.encode(protoMessage).finish();
+      // Create a message structure using Protobuf
+      const ChatMessage = new protobuf.Type("ChatMessage")
+        .add(new protobuf.Field("timestamp", 1, "uint64"))
+        .add(new protobuf.Field("sender", 2, "string"))
+        .add(new protobuf.Field("message", 3, "string"));
 
-    const encoder = createEncoder({ contentTopic: CONTENT_TOPIC });
+      // Create a new message object
+      const protoMessage = ChatMessage.create({
+        timestamp: Date.now(),
+        sender: username,
+        message: inputMessage,
+      });
 
-    // Send the message using Light Push
-    const result = await node.lightPush.send(encoder, {
-      payload: serialisedMessage,
-    });
-    console.log("Message sent");
-    console.log(result);
-  }, [inputMessage, node, username]);
+      // Serialise the message using Protobuf
+      const serialisedMessage = ChatMessage.encode(protoMessage).finish();
+
+      const encoder = createEncoder({ contentTopic: CONTENT_TOPIC });
+
+      // Send the message using Light Push
+      const result = await node.lightPush.send(encoder, {
+        payload: serialisedMessage,
+      });
+      console.log("Message sent");
+      console.log(result);
+      setIsSending(false);
+    },
+    [inputMessage, node, username]
+  );
 
   return (
     <>
@@ -174,6 +191,9 @@ export default function Home() {
       </Head>
       <div className="chat-interface">
         <h1>UD Waku Proof-of-Concept</h1>
+        <br />
+        <hr />
+        <br />
         {isSubscribed ? (
           <div className="chat-body">
             {messages.map((message, index) => (
@@ -188,14 +208,22 @@ export default function Home() {
         ) : (
           <div>Loading chat history...</div>
         )}
+        <br />
+        <hr />
+        <br />
+        <label htmlFor="username-input">Username: </label>
         <input
           type="text"
           id="username-input"
           value={username}
-          onChange={(e) => setUsername(e.target.value)}
+          onChange={(e) => {
+            setUsername(e.target.value);
+            localStorage.setItem("username", e.target.value);
+          }}
           placeholder="Enter your username..."
         />
-        <div className="chat-footer">
+        <form onSubmit={sendMessage} className="chat-footer">
+          <label htmlFor="message-input">Message: </label>
           <input
             type="text"
             id="message-input"
@@ -203,10 +231,10 @@ export default function Home() {
             onChange={(e) => setInputMessage(e.target.value)}
             placeholder="Type your message..."
           />
-          <button className="send-button" onClick={sendMessage}>
-            Send
+          <button className="send-button" disabled={isSending}>
+            {isSending ? "Sending..." : "Send"}
           </button>
-        </div>
+        </form>
       </div>
     </>
   );

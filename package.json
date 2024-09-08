@@ -9,8 +9,8 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@waku/message-hash": "^0.1.14",
-    "@waku/sdk": "^0.0.26",
+    "@libp2p/bootstrap": "^10.1.5",
+    "@waku/sdk": "^0.0.28",
     "next": "14.2.6",
     "protobufjs": "^7.4.0",
     "react": "^18",

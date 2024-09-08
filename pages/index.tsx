@@ -12,9 +12,7 @@ import {
 } from "@waku/sdk";
 import protobuf from "protobufjs";
 
-const inter = Inter({ subsets: ["latin"] });
-
-const CONTENT_TOPIC = "/ud-waku-react-testing/1/message/proto";
+const CONTENT_TOPIC = "/ud-waku-react-testing/2/message/proto";
 
 type Message = {
   timestamp: number;
@@ -168,7 +166,10 @@ export default function Home() {
       // Serialise the message using Protobuf
       const serialisedMessage = ChatMessage.encode(protoMessage).finish();
 
-      const encoder = createEncoder({ contentTopic: CONTENT_TOPIC });
+      const encoder = createEncoder({
+        contentTopic: CONTENT_TOPIC,
+        ephemeral: true,
+      });
 
       // Send the message using Light Push
       const result = await node.lightPush.send(encoder, {
